@@ -1,5 +1,6 @@
 <script>
 	import Nav from '../components/Nav.svelte';
+	import GitHubCorner from '../components/GitHubCorner.svelte';
 
 	export let segment;
 </script>
@@ -14,6 +15,8 @@
 		box-sizing: border-box;
 	}
 </style>
+
+<GitHubCorner />
 
 <Nav {segment}/>
 
