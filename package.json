@@ -35,6 +35,7 @@
     "compression": "^1.7.1",
     "open-color": "^1.7.0",
     "polka": "next",
+    "roughjs": "^4.3.1",
     "sirv": "^0.4.0"
   },
   "devDependencies": {
