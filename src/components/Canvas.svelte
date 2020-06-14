@@ -1,87 +1,98 @@
 <script>
   import { onMount } from 'svelte';
-  import rough from "roughjs/bin/rough";
+
+  let canvas,
+    ctx,
+    flag = false,
+    prevX = 0,
+    currX = 0,
+    prevY = 0,
+    currY = 0,
+    dot_flag = false,
+    color = "black",
+    lineWidth = 2,
+    width = 400,
+    height = 400;
+
+  function init() {
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext("2d");
+    width = canvas.width;
+    height = canvas.height;
+
+    canvas.addEventListener("mousemove", function (e) {
+      findxy('move', e)
+    }, false);
+    canvas.addEventListener("mousedown", function (e) {
+      findxy('down', e)
+    }, false);
+    canvas.addEventListener("mouseup", function (e) {
+      findxy('up', e)
+    }, false);
+    canvas.addEventListener("mouseout", function (e) {
+      findxy('out', e)
+    }, false);
+  }
+    
+  function draw() {
+    ctx.beginPath();
+    ctx.moveTo(prevX, prevY);
+    ctx.lineTo(currX, currY);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+    ctx.closePath();
+  }
+  
+  function erase() {
+    var m = confirm("Want to clear");
+    if (m) {
+      ctx.clearRect(0, 0, width, height);
+    }
+  }
+  
+  function findxy(res, e) {
+    if (res == 'down') {
+      prevX = currX;
+      prevY = currY;
+      currX = e.clientX - canvas.offsetLeft;
+      currY = e.clientY - canvas.offsetTop;
+
+      flag = true;
+      dot_flag = true;
+      if (dot_flag) {
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.fillRect(currX, currY, 2, 2);
+        ctx.closePath();
+        dot_flag = false;
+      }
+    }
+    if (res == 'up' || res == "out") {
+      flag = false;
+    }
+    if (res == 'move') {
+      if (flag) {
+        prevX = currX;
+        prevY = currY;
+        currX = e.clientX - canvas.offsetLeft;
+        currY = e.clientY - canvas.offsetTop;
+        draw();
+      }
+    }
+  }
 
   onMount(() => {
-		const rc = rough.canvas(document.getElementById('canvas'));
-    //line and rectangle
-    rc.rectangle(10, 10, 100, 100);
-    rc.rectangle(140, 10, 100, 100, {
-      fill: 'rgba(255,0,0,0.2)',
-      fillStyle: 'solid',
-      roughness: 2
-    });
-    rc.rectangle(10, 130, 100, 100, {
-      fill: 'red',
-      stroke: 'blue',
-      hachureAngle: 60,
-      hachureGap: 10,
-      fillWeight: 5,
-      strokeWidth: 5
-    });
-
-    // ellipse and circle
-    rc.ellipse(350, 50, 150, 80);
-    rc.ellipse(610, 50, 150, 80, {
-      fill: 'blue'
-    });
-    rc.circle(480, 50, 80, {
-      stroke: 'red', strokeWidth: 2,
-      fill: 'rgba(0,255,0,0.3)', fillStyle: 'solid'
-    });
-
-    //overlapping circles
-    rc.circle(480, 150, 80, {
-      stroke: 'red', strokeWidth: 4,
-      fill: 'rgba(0,255,0,1)', fillWeight: 4, hachureGap: 6
-    });
-    rc.circle(530, 150, 80, {
-      stroke: 'blue', strokeWidth: 4,
-      fill: 'rgba(255,255,0,1)', fillWeight: 4, hachureGap: 6
-    });
-
-    // linearPath and polygon
-    rc.linearPath([[690, 10], [790, 20], [750, 120], [690, 100]], {
-      roughness: 0.7,
-      stroke: 'red', strokeWidth: 4
-    });
-    rc.polygon([[690, 130], [790, 140], [750, 240], [690, 220]]);
-    rc.polygon([[690, 250], [790, 260], [750, 360], [690, 340]], {
-      stroke: 'red', strokeWidth: 4,
-      fill: 'rgba(0,0,255,0.2)', fillStyle: 'solid'
-    });
-    rc.polygon([[690, 370], [790, 385], [750, 480], [690, 460]], {
-      stroke: 'red',
-      hachureAngle: 65,
-      fill: 'rgba(0,0,255,0.6)'
-    });
-
-    // arcs
-    rc.arc(350, 200, 200, 180, Math.PI, Math.PI * 1.6);
-    rc.arc(350, 300, 200, 180, Math.PI, Math.PI * 1.6, true);
-    rc.arc(350, 300, 200, 180, 0, Math.PI / 2, true, {
-      stroke: 'red', strokeWidth: 4,
-      fill: 'rgba(255,255,0,0.4)', fillStyle: 'solid'
-    });
-    rc.arc(350, 300, 200, 180, Math.PI / 2, Math.PI, true, {
-      stroke: 'blue', strokeWidth: 2,
-      fill: 'rgba(255,0,255,0.4)'
-    });
-
-    // draw sine curve
-    let points = [];
-    for (let i = 0; i < 20; i++) {
-      // 4pi - 400px
-      let x = (400 / 20) * i + 10;
-      let xdeg = (Math.PI / 100) * x;
-      let y = Math.round(Math.sin(xdeg) * 90) + 500;
-      points.push([x, y]);
-    }
-    rc.curve(points, {
-      roughness: 1.2, stroke: 'red', strokeWidth: 3
-    });
-	});
+    init();
+  })
 </script>
 
+<style>
+  canvas {
+    border: 2px solid;
+    margin: 0 auto;
+    display: block;
+  }
+</style>
 
-<canvas id="canvas" width="800" height="600"></canvas>
+<canvas id="canvas" width="400" height="400"></canvas>
