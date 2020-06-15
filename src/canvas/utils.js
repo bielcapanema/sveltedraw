@@ -15,13 +15,13 @@ export function getElementAbsoluteY2(element) {
   return element.height >= 0 ? element.y + element.height : element.y;
 }
 
-export function newElement(type, x, y) {
+export function newElement(type, x, y, width = 0, height = 0) {
   const element = {
     type: type,
     x: x,
     y: y,
-    width: 0,
-    height: 0,
+    width,
+    height,
     isSelected: false
   };
   return element;

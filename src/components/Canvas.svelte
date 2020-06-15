@@ -16,10 +16,14 @@
     context,
     canvas,
     generator,
+    exportAsPNG,
     rc;
 
   let draggingElement = null;
   let elementType = "selection";
+  let exportBackground = false;
+  let exportVisibleOnly = true;
+  let exportPadding = 10;
 
   onMount(() => {
     screenWidth = window.innerWidth;
@@ -283,7 +287,89 @@
       drawScene();
     }
 
+    exportAsPNG = ({ background, visibleOnly, padding = 10 }) => {
+      clearSelection();
+      drawScene();
+
+      let subCanvasX1 = Infinity;
+      let subCanvasX2 = 0;
+      let subCanvasY1 = Infinity;
+      let subCanvasY2 = 0;
+
+      elements.forEach(element => {
+        subCanvasX1 = Math.min(subCanvasX1, getElementAbsoluteX1(element));
+        subCanvasX2 = Math.max(subCanvasX2, getElementAbsoluteX2(element));
+        subCanvasY1 = Math.min(subCanvasY1, getElementAbsoluteY1(element));
+        subCanvasY2 = Math.max(subCanvasY2, getElementAbsoluteY2(element));
+      });
+
+      let targetCanvas = canvas;
+
+      if ( visibleOnly ) {
+        targetCanvas = document.createElement('canvas');
+        targetCanvas.style.display = 'none';
+        document.body.appendChild(targetCanvas);
+        targetCanvas.width = subCanvasX2 - subCanvasX1 + padding * 2;
+        targetCanvas.height = subCanvasY2 - subCanvasY1 + padding * 2;
+        const targetCanvas_ctx = targetCanvas.getContext('2d');
+
+        if ( background ) {
+          targetCanvas_ctx.fillStyle = "#FFF";
+          targetCanvas_ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        targetCanvas_ctx.drawImage(
+          canvas,
+          subCanvasX1 - padding, // x
+          subCanvasY1 - padding, // y
+          subCanvasX2 - subCanvasX1 + padding * 2, // width
+          subCanvasY2 - subCanvasY1 + padding * 2, // height
+          0,
+          0,
+          targetCanvas.width,
+          targetCanvas.height
+        );
+      }
+
+      const link = document.createElement('a');
+      link.setAttribute('download', 'excalibur.png');
+      link.setAttribute('href', targetCanvas.toDataURL("image/png"));
+      link.click();
+      link.remove();
+      if ( targetCanvas !== canvas ) targetCanvas.remove();
+    }
+    
+    function onKeyDown(event) {
+      if (event.key === "Backspace" && event.target.nodeName !== "INPUT") {
+        for (var i = elements.length - 1; i >= 0; --i) {
+          if (elements[i].isSelected) {
+            elements.splice(i, 1);
+          }
+        }
+        drawScene();
+        event.preventDefault();
+      } else if (
+        event.key === "ArrowLeft" ||
+        event.key === "ArrowRight" ||
+        event.key === "ArrowUp" ||
+        event.key === "ArrowDown"
+      ) {
+        const step = event.shiftKey ? 5 : 1;
+        elements.forEach(element => {
+          if (element.isSelected) {
+            if (event.key === "ArrowLeft") element.x -= step;
+            else if (event.key === "ArrowRight") element.x += step;
+            else if (event.key === "ArrowUp") element.y -= step;
+            else if (event.key === "ArrowDown") element.y += step;
+          }
+        });
+        drawScene();
+        event.preventDefault();
+      }
+    };
+
     canvas.addEventListener('mousedown', handleDrawing)
+    document.addEventListener('keydown', onKeyDown, false)
   });
 
   const menuItems = [
@@ -308,6 +394,40 @@
   {/each}
 </div>
 
+<div class="exportWrapper">
+  <button on:click={() => {
+    exportAsPNG({
+      background: exportBackground,
+      visibleOnly: exportVisibleOnly,
+      padding: exportPadding
+    })
+  }}>Export to png</button>
+  <label>
+    <input type="checkbox"
+      checked={exportBackground}
+      on:change={e => {
+        exportBackground = e.target.checked;
+      }}
+    /> background
+  </label>
+  <label>
+    <input type="checkbox"
+      checked={exportVisibleOnly}
+      onChange={e => {
+        exportVisibleOnly = e.target.checked;
+      }}
+    />
+    visible area only
+  </label>
+  (padding:
+    <input type="number" value={exportPadding}
+      onChange={e => {
+        exportPadding = e.target.value;
+      }}
+      disabled={!exportVisibleOnly}/>
+  px)
+</div>
+
 <canvas
   id="canvas"
   width={screenWidth}
@@ -318,5 +438,26 @@
   .menu {
     margin: 0 auto;
     text-align: center;
+  }
+
+  .exportWrapper {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+  }
+  .exportWrapper label {
+    display: flex;
+    align-items: center;
+    margin: 0 5px;
+  }
+
+  .exportWrapper button {
+    margin-right: 10px;
+  }
+
+  .exportWrapper input[type="number"] {
+    width: 40px;
+    padding: 2px;
+    margin-left: 10px;
   }
 </style>
