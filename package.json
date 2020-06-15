@@ -5,9 +5,9 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "sapper dev",
-    "build": "sapper export --legacy",
+    "build": "sapper export --legacy && mkdir public && mv -v ./__sapper__/export/* public/ ",
     "export": "sapper export --legacy",
-    "start": "npx serve __sapper__/export",
+    "start": "npx serve public",
     "cy:run": "cypress run",
     "cy:open": "cypress open",
     "test": "run-p --race dev cy:run"
