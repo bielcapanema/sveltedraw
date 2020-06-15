@@ -162,6 +162,23 @@
       const y = e.clientY - e.target.offsetTop;
       const element = newElement(elementType, x, y);
 
+      let isDraggingElements = false;
+      const cursorStyle = document.documentElement.style.cursor;
+      if (elementType === "selection") {
+        isDraggingElements = elements.some(el => {
+          if (el.isSelected) {
+            const minX = Math.min(el.x, el.x + el.width);
+            const maxX = Math.max(el.x, el.x + el.width);
+            const minY = Math.min(el.y, el.y + el.height);
+            const maxY = Math.max(el.y, el.y + el.height);
+            return minX <= x && x <= maxX && minY <= y && y <= maxY;
+          }
+        });
+        if (isDraggingElements) {
+          document.documentElement.style.cursor = "move";
+        }
+      }
+
       if (elementType === "text") {
         const text = prompt("What text do you want?");
         if (text === null) {
@@ -194,7 +211,26 @@
         // elementType = undefined;
       }
 
+      let lastX = x;
+      let lastY = y;
+            
       const onMouseMove = (e) => {
+        if (isDraggingElements) {
+          const selectedElements = elements.filter(el => el.isSelected);
+          if (selectedElements.length) {
+            const x = e.clientX - e.target.offsetLeft;
+            const y = e.clientY - e.target.offsetTop;
+            selectedElements.forEach(element => {
+              element.x += x - lastX;
+              element.y += y - lastY;
+            });
+            lastX = x;
+            lastY = y;
+            drawScene();
+            return;
+          }
+        }
+        
         // It is very important to read this.state within each move event,
         // otherwise we would read a stale one!
         const draggingElementTemp = draggingElement;
@@ -216,15 +252,21 @@
       const onMouseUp = e => {
         window.removeEventListener("mousemove", onMouseMove);
         window.removeEventListener("mouseup", onMouseUp);
+        document.documentElement.style.cursor = cursorStyle;
 
         const draggingElementTemp = draggingElement;
         if (draggingElementTemp === null) {
           return;
         }
         if (elementType === "selection") {
-          // Remove actual selection element
+          if (isDraggingElements) {
+            isDraggingElements = false;
+          } else {
+            // Remove actual selection element
+            setSelection(draggingElement);
+          }
+
           elements.pop();
-          setSelection(draggingElementTemp);
         } else {
           draggingElementTemp.isSelected = true;
         }
