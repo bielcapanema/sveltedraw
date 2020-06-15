@@ -8,6 +8,7 @@
     getElementAbsoluteY2,
     newElement,
     rotate,
+    isInsideAnElement,
   } from '../canvas/utils.js'
 
   let handleDrawing,
@@ -35,6 +36,8 @@
     rc = rough.canvas(canvas);
     context = canvas.getContext("2d");
     generator = rough.generator();
+
+    context.translate(0.5, 0.5);
 
     function clearSelection() {
       elements.forEach(element => {
@@ -165,54 +168,59 @@
       const x = e.clientX - e.target.offsetLeft;
       const y = e.clientY - e.target.offsetTop;
       const element = newElement(elementType, x, y);
-
       let isDraggingElements = false;
       const cursorStyle = document.documentElement.style.cursor;
       if (elementType === "selection") {
-        isDraggingElements = elements.some(el => {
-          if (el.isSelected) {
-            const minX = Math.min(el.x, el.x + el.width);
-            const maxX = Math.max(el.x, el.x + el.width);
-            const minY = Math.min(el.y, el.y + el.height);
-            const maxY = Math.max(el.y, el.y + el.height);
-            return minX <= x && x <= maxX && minY <= y && y <= maxY;
+        const selectedElement = elements.find(element => {
+          const isSelected = isInsideAnElement(x, y)(element);
+          if (isSelected) {
+            element.isSelected = true;
           }
+          return isSelected;
         });
+
+        if (selectedElement) {
+          draggingElement = selectedElement;
+        } else {
+          clearSelection();
+        }
+
+        isDraggingElements = elements.some(element => element.isSelected);
+
         if (isDraggingElements) {
           document.documentElement.style.cursor = "move";
         }
-      }
-
-      if (elementType === "text") {
-        const text = prompt("What text do you want?");
-        if (text === null) {
-          return;
-        }
-        element.text = text;
-        element.font = "20px Virgil";
-        const font = context.font;
-        context.font = element.font;
-        element.measure = context.measureText(element.text);
-        context.font = font;
-        const height =
-          element.measure.actualBoundingBoxAscent +
-          element.measure.actualBoundingBoxDescent;
-        // Center the text
-        element.x -= element.measure.width / 2;
-        element.y -= element.measure.actualBoundingBoxAscent;
-        element.width = element.measure.width;
-        element.height = height;
-      }
-
-      generateDraw(element);
-      elements.push(element);
-      if (elementType === "text") {
-        draggingElement = null;
-        elementType = "selection";
-        element.isSelected = true;
       } else {
-        draggingElement = element;
-        // elementType = undefined;
+        if (elementType === "text") {
+          const text = prompt("What text do you want?");
+          if (text === null) {
+            return;
+          }
+          element.text = text;
+          element.font = "20px Virgil";
+          const font = context.font;
+          context.font = element.font;
+          element.measure = context.measureText(element.text);
+          context.font = font;
+          const height =
+            element.measure.actualBoundingBoxAscent +
+            element.measure.actualBoundingBoxDescent;
+          // Center the text
+          element.x -= element.measure.width / 2;
+          element.y -= element.measure.actualBoundingBoxAscent;
+          element.width = element.measure.width;
+          element.height = height;
+        }
+
+        generateDraw(element);
+        elements.push(element);
+        if (elementType === "text") {
+          draggingElement = null;
+          elementType = "selection";
+          element.isSelected = true;
+        } else {
+          draggingElement = element;
+        }
       }
 
       let lastX = x;
@@ -253,26 +261,24 @@
         drawScene();
       };
 
-      const onMouseUp = e => {
+      const onMouseUp = (e) => {
         window.removeEventListener("mousemove", onMouseMove);
         window.removeEventListener("mouseup", onMouseUp);
         document.documentElement.style.cursor = cursorStyle;
 
-        const draggingElementTemp = draggingElement;
-        if (draggingElementTemp === null) {
-          return;
+        if (draggingElement === null) {
+          clearSelection()
+          drawScene();
+          return
         }
+
         if (elementType === "selection") {
           if (isDraggingElements) {
             isDraggingElements = false;
-          } else {
-            // Remove actual selection element
-            setSelection(draggingElement);
           }
-
-          elements.pop();
+          // elements.pop();
         } else {
-          draggingElementTemp.isSelected = true;
+          draggingElement.isSelected = true;
         }
 
         draggingElement = null;
@@ -287,7 +293,13 @@
       drawScene();
     }
 
-    exportAsPNG = ({ background, visibleOnly, padding = 10 }) => {
+    exportAsPNG = ({
+      exportBackground,
+      exportVisibleOnly,
+      exportPadding = 10,
+    }) => {
+      if ( !elements.length ) return window.alert("Cannot export empty canvas.");
+
       clearSelection();
       drawScene();
 
@@ -303,40 +315,51 @@
         subCanvasY2 = Math.max(subCanvasY2, getElementAbsoluteY2(element));
       });
 
-      let targetCanvas = canvas;
+      // create temporary canvas from which we'll export
+      const tempCanvas = document.createElement("canvas");
+      const tempCanvasCtx = tempCanvas.getContext("2d");
+      tempCanvas.style.display = "none";
+      document.body.appendChild(tempCanvas);
+      tempCanvas.width = exportVisibleOnly
+        ? subCanvasX2 - subCanvasX1 + exportPadding * 2
+        : canvas.width;
+      tempCanvas.height = exportVisibleOnly
+        ? subCanvasY2 - subCanvasY1 + exportPadding * 2
+        : canvas.height;
 
-      if ( visibleOnly ) {
-        targetCanvas = document.createElement('canvas');
-        targetCanvas.style.display = 'none';
-        document.body.appendChild(targetCanvas);
-        targetCanvas.width = subCanvasX2 - subCanvasX1 + padding * 2;
-        targetCanvas.height = subCanvasY2 - subCanvasY1 + padding * 2;
-        const targetCanvas_ctx = targetCanvas.getContext('2d');
-
-        if ( background ) {
-          targetCanvas_ctx.fillStyle = "#FFF";
-          targetCanvas_ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        targetCanvas_ctx.drawImage(
-          canvas,
-          subCanvasX1 - padding, // x
-          subCanvasY1 - padding, // y
-          subCanvasX2 - subCanvasX1 + padding * 2, // width
-          subCanvasY2 - subCanvasY1 + padding * 2, // height
-          0,
-          0,
-          targetCanvas.width,
-          targetCanvas.height
-        );
+      if (exportBackground) {
+        tempCanvasCtx.fillStyle = "#FFF";
+        tempCanvasCtx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      const link = document.createElement('a');
-      link.setAttribute('download', 'excalibur.png');
-      link.setAttribute('href', targetCanvas.toDataURL("image/png"));
+      // copy our original canvas onto the temp canvas
+      tempCanvasCtx.drawImage(
+        canvas, // source
+        exportVisibleOnly // sx
+          ? subCanvasX1 - exportPadding
+          : 0,
+        exportVisibleOnly // sy
+          ? subCanvasY1 - exportPadding
+          : 0,
+        exportVisibleOnly // sWidth
+          ? subCanvasX2 - subCanvasX1 + exportPadding * 2
+          : canvas.width,
+        exportVisibleOnly // sHeight
+          ? subCanvasY2 - subCanvasY1 + exportPadding * 2
+          : canvas.height,
+        0, // dx
+        0, // dy
+        exportVisibleOnly ? tempCanvas.width : canvas.width, // dWidth
+        exportVisibleOnly ? tempCanvas.height : canvas.height // dHeight
+      );
+
+      // create a temporary <a> elem which we'll use to download the image
+      const link = document.createElement("a");
+      link.setAttribute("download", "excalibur.png");
+      link.setAttribute("href", tempCanvas.toDataURL("image/png"));
       link.click();
       link.remove();
-      if ( targetCanvas !== canvas ) targetCanvas.remove();
+      if (tempCanvas !== canvas) tempCanvas.remove();
     }
     
     function onKeyDown(event) {
@@ -397,9 +420,9 @@
 <div class="exportWrapper">
   <button on:click={() => {
     exportAsPNG({
-      background: exportBackground,
-      visibleOnly: exportVisibleOnly,
-      padding: exportPadding
+      exportBackground,
+      exportVisibleOnly,
+      exportPadding
     })
   }}>Export to png</button>
   <label>
