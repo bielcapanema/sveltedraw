@@ -47,3 +47,11 @@ export function isInsideAnElement(x, y) {
     return x >= x1 && x <= x2 && y >= y1 && y <= y2;
   };
 }
+
+export const menuItems = [
+  { value: 'rectangle', children: '1 - Rectangle' },
+  { value: 'ellipse', children: '2 - Ellipse' },
+  { value: 'arrow', children: '3 - Arrow' },
+  { value: 'text', children: '4 - Text' },
+  { value: 'selection', children: '5 - Selection' },
+];

@@ -1,13 +1,6 @@
 <script>
+  import { menuItems } from '../canvas/utils';
   export let elementType;
-
-  const menuItems = [
-    { value: 'rectangle', children: 'Rectangle' },
-    { value: 'ellipse', children: 'Ellipse' },
-    { value: 'arrow', children: 'Arrow' },
-    { value: 'text', children: 'Text' },
-    { value: 'selection', children: 'Selection' },
-  ];
 </script>
 
 <div class="menu">

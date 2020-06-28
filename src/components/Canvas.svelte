@@ -9,6 +9,7 @@
     newElement,
     rotate,
     isInsideAnElement,
+    menuItems,
   } from '../canvas/utils.js';
   import Menu from './Menu.svelte';
   import Export from './Export.svelte';
@@ -317,12 +318,22 @@
         });
         drawScene();
         event.preventDefault();
+      } else {
+        handleShortchuts(event);
       }
     }
 
     canvas.addEventListener('mousedown', handleDrawing);
     document.addEventListener('keydown', onKeyDown, false);
   });
+
+  const handleShortchuts = event => {
+    const index = parseInt(event.key, 10) - 1;
+
+    if (menuItems[index]) {
+      elementType = menuItems[index].value;
+    }
+  };
 </script>
 
 <Menu bind:elementType>
