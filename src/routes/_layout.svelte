@@ -1,20 +1,21 @@
 <script>
-	import Nav from '../components/Nav.svelte';
-	import GitHubCorner from '../components/GitHubCorner.svelte';
+  import Nav from '../components/Nav.svelte';
+  import GitHubCorner from '../components/GitHubCorner.svelte';
 
-	export let segment;
+  export let segment;
+  const a = 'testes';
 </script>
-
-<style>
-	main {
-		height: 100%;
-	}
-</style>
 
 <GitHubCorner />
 
-<Nav {segment}/>
+<Nav {segment} />
 
 <main>
-	<slot></slot>
+  <slot />
 </main>
+
+<style>
+  main {
+    height: 100%;
+  }
+</style>

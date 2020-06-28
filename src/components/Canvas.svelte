@@ -1,5 +1,5 @@
 <script>
-  import rough from "roughjs/bin/rough";
+  import rough from 'roughjs/bin/rough';
   import { onMount } from 'svelte';
   import {
     getElementAbsoluteX1,
@@ -9,7 +9,7 @@
     newElement,
     rotate,
     isInsideAnElement,
-  } from '../canvas/utils.js'
+  } from '../canvas/utils.js';
 
   let handleDrawing,
     screenWidth,
@@ -21,7 +21,7 @@
     rc;
 
   let draggingElement = null;
-  let elementType = "selection";
+  let elementType = 'selection';
   let exportBackground = false;
   let exportVisibleOnly = true;
   let exportPadding = 10;
@@ -31,16 +31,16 @@
     screenHeight = window.innerHeight;
 
     let elements = [];
-    
-    canvas = document.getElementById("canvas");
+
+    canvas = document.getElementById('canvas');
     rc = rough.canvas(canvas);
-    context = canvas.getContext("2d");
+    context = canvas.getContext('2d');
     generator = rough.generator();
 
     context.translate(0.5, 0.5);
 
     function clearSelection() {
-      elements.forEach(element => {
+      elements.forEach((element) => {
         element.isSelected = false;
       });
     }
@@ -50,13 +50,13 @@
       const selectionX2 = getElementAbsoluteX2(selection);
       const selectionY1 = getElementAbsoluteY1(selection);
       const selectionY2 = getElementAbsoluteY2(selection);
-      elements.forEach(element => {
+      elements.forEach((element) => {
         const elementX1 = getElementAbsoluteX1(element);
         const elementX2 = getElementAbsoluteX2(element);
         const elementY1 = getElementAbsoluteY1(element);
         const elementY2 = getElementAbsoluteY2(element);
         element.isSelected =
-          element.type !== "selection" &&
+          element.type !== 'selection' &&
           selectionX1 <= elementX1 &&
           selectionY1 <= elementY1 &&
           selectionX2 >= elementX2 &&
@@ -65,21 +65,21 @@
     }
 
     function generateDraw(element) {
-      if (element.type === "selection") {
+      if (element.type === 'selection') {
         element.draw = (rc, context) => {
           const fillStyle = context.fillStyle;
-          context.fillStyle = "rgba(0, 0, 255, 0.10)";
+          context.fillStyle = 'rgba(0, 0, 255, 0.10)';
           context.fillRect(element.x, element.y, element.width, element.height);
           context.fillStyle = fillStyle;
         };
-      } else if (element.type === "rectangle") {
+      } else if (element.type === 'rectangle') {
         const shape = generator.rectangle(0, 0, element.width, element.height);
         element.draw = (rc, context) => {
           context.translate(element.x, element.y);
           rc.draw(shape);
           context.translate(-element.x, -element.y);
         };
-      } else if (element.type === "ellipse") {
+      } else if (element.type === 'ellipse') {
         const shape = generator.ellipse(
           element.width / 2,
           element.height / 2,
@@ -91,7 +91,7 @@
           rc.draw(shape);
           context.translate(-element.x, -element.y);
         };
-      } else if (element.type === "arrow") {
+      } else if (element.type === 'arrow') {
         const x1 = 0;
         const y1 = 0;
         const x2 = element.width;
@@ -114,16 +114,16 @@
           // -----
           generator.line(x1, y1, x2, y2),
           //    /
-          generator.line(x4, y4, x2, y2)
+          generator.line(x4, y4, x2, y2),
         ];
 
         element.draw = (rc, context) => {
           context.translate(element.x, element.y);
-          shapes.forEach(shape => rc.draw(shape));
+          shapes.forEach((shape) => rc.draw(shape));
           context.translate(-element.x, -element.y);
         };
         return;
-      } else if (element.type === "text") {
+      } else if (element.type === 'text') {
         element.draw = (rc, context) => {
           const font = context.font;
           context.font = element.font;
@@ -135,14 +135,14 @@
           context.font = font;
         };
       } else {
-        throw new Error("Unimplemented type " + element.type);
+        throw new Error('Unimplemented type ' + element.type);
       }
     }
-    
+
     function drawScene() {
       context.clearRect(-0.5, -0.5, canvas.width, canvas.height);
 
-      elements.forEach(element => {
+      elements.forEach((element) => {
         element.draw(rc, context);
         if (element.isSelected) {
           const margin = 4;
@@ -170,8 +170,8 @@
       const element = newElement(elementType, x, y);
       let isDraggingElements = false;
       const cursorStyle = document.documentElement.style.cursor;
-      if (elementType === "selection") {
-        const selectedElement = elements.find(element => {
+      if (elementType === 'selection') {
+        const selectedElement = elements.find((element) => {
           const isSelected = isInsideAnElement(x, y)(element);
           if (isSelected) {
             element.isSelected = true;
@@ -185,19 +185,19 @@
           clearSelection();
         }
 
-        isDraggingElements = elements.some(element => element.isSelected);
+        isDraggingElements = elements.some((element) => element.isSelected);
 
         if (isDraggingElements) {
-          document.documentElement.style.cursor = "move";
+          document.documentElement.style.cursor = 'move';
         }
       } else {
-        if (elementType === "text") {
-          const text = prompt("What text do you want?");
+        if (elementType === 'text') {
+          const text = prompt('What text do you want?');
           if (text === null) {
             return;
           }
           element.text = text;
-          element.font = "20px Virgil";
+          element.font = '20px Virgil';
           const font = context.font;
           context.font = element.font;
           element.measure = context.measureText(element.text);
@@ -214,9 +214,9 @@
 
         generateDraw(element);
         elements.push(element);
-        if (elementType === "text") {
+        if (elementType === 'text') {
           draggingElement = null;
-          elementType = "selection";
+          elementType = 'selection';
           element.isSelected = true;
         } else {
           draggingElement = element;
@@ -225,14 +225,14 @@
 
       let lastX = x;
       let lastY = y;
-            
+
       const onMouseMove = (e) => {
         if (isDraggingElements) {
-          const selectedElements = elements.filter(el => el.isSelected);
+          const selectedElements = elements.filter((el) => el.isSelected);
           if (selectedElements.length) {
             const x = e.clientX - e.target.offsetLeft;
             const y = e.clientY - e.target.offsetTop;
-            selectedElements.forEach(element => {
+            selectedElements.forEach((element) => {
               element.x += x - lastX;
               element.y += y - lastY;
             });
@@ -242,7 +242,7 @@
             return;
           }
         }
-        
+
         // It is very important to read this.state within each move event,
         // otherwise we would read a stale one!
         const draggingElementTemp = draggingElement;
@@ -255,24 +255,24 @@
 
         generateDraw(draggingElementTemp);
 
-        if (elementType === "selection") {
+        if (elementType === 'selection') {
           setSelection(draggingElementTemp);
         }
         drawScene();
       };
 
       const onMouseUp = (e) => {
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
         document.documentElement.style.cursor = cursorStyle;
 
         if (draggingElement === null) {
-          clearSelection()
+          clearSelection();
           drawScene();
-          return
+          return;
         }
 
-        if (elementType === "selection") {
+        if (elementType === 'selection') {
           if (isDraggingElements) {
             isDraggingElements = false;
           }
@@ -282,23 +282,23 @@
         }
 
         draggingElement = null;
-        elementType = "selection";
+        elementType = 'selection';
 
         drawScene();
       };
 
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
 
       drawScene();
-    }
+    };
 
     exportAsPNG = ({
       exportBackground,
       exportVisibleOnly,
       exportPadding = 10,
     }) => {
-      if ( !elements.length ) return window.alert("Cannot export empty canvas.");
+      if (!elements.length) return window.alert('Cannot export empty canvas.');
 
       clearSelection();
       drawScene();
@@ -308,7 +308,7 @@
       let subCanvasY1 = Infinity;
       let subCanvasY2 = 0;
 
-      elements.forEach(element => {
+      elements.forEach((element) => {
         subCanvasX1 = Math.min(subCanvasX1, getElementAbsoluteX1(element));
         subCanvasX2 = Math.max(subCanvasX2, getElementAbsoluteX2(element));
         subCanvasY1 = Math.min(subCanvasY1, getElementAbsoluteY1(element));
@@ -316,9 +316,9 @@
       });
 
       // create temporary canvas from which we'll export
-      const tempCanvas = document.createElement("canvas");
-      const tempCanvasCtx = tempCanvas.getContext("2d");
-      tempCanvas.style.display = "none";
+      const tempCanvas = document.createElement('canvas');
+      const tempCanvasCtx = tempCanvas.getContext('2d');
+      tempCanvas.style.display = 'none';
       document.body.appendChild(tempCanvas);
       tempCanvas.width = exportVisibleOnly
         ? subCanvasX2 - subCanvasX1 + exportPadding * 2
@@ -328,7 +328,7 @@
         : canvas.height;
 
       if (exportBackground) {
-        tempCanvasCtx.fillStyle = "#FFF";
+        tempCanvasCtx.fillStyle = '#FFF';
         tempCanvasCtx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
@@ -354,16 +354,16 @@
       );
 
       // create a temporary <a> elem which we'll use to download the image
-      const link = document.createElement("a");
-      link.setAttribute("download", "excalibur.png");
-      link.setAttribute("href", tempCanvas.toDataURL("image/png"));
+      const link = document.createElement('a');
+      link.setAttribute('download', 'excalibur.png');
+      link.setAttribute('href', tempCanvas.toDataURL('image/png'));
       link.click();
       link.remove();
       if (tempCanvas !== canvas) tempCanvas.remove();
-    }
-    
+    };
+
     function onKeyDown(event) {
-      if (event.key === "Backspace" && event.target.nodeName !== "INPUT") {
+      if (event.key === 'Backspace' && event.target.nodeName !== 'INPUT') {
         for (var i = elements.length - 1; i >= 0; --i) {
           if (elements[i].isSelected) {
             elements.splice(i, 1);
@@ -372,90 +372,88 @@
         drawScene();
         event.preventDefault();
       } else if (
-        event.key === "ArrowLeft" ||
-        event.key === "ArrowRight" ||
-        event.key === "ArrowUp" ||
-        event.key === "ArrowDown"
+        event.key === 'ArrowLeft' ||
+        event.key === 'ArrowRight' ||
+        event.key === 'ArrowUp' ||
+        event.key === 'ArrowDown'
       ) {
         const step = event.shiftKey ? 5 : 1;
-        elements.forEach(element => {
+        elements.forEach((element) => {
           if (element.isSelected) {
-            if (event.key === "ArrowLeft") element.x -= step;
-            else if (event.key === "ArrowRight") element.x += step;
-            else if (event.key === "ArrowUp") element.y -= step;
-            else if (event.key === "ArrowDown") element.y += step;
+            if (event.key === 'ArrowLeft') element.x -= step;
+            else if (event.key === 'ArrowRight') element.x += step;
+            else if (event.key === 'ArrowUp') element.y -= step;
+            else if (event.key === 'ArrowDown') element.y += step;
           }
         });
         drawScene();
         event.preventDefault();
       }
-    };
+    }
 
-    canvas.addEventListener('mousedown', handleDrawing)
-    document.addEventListener('keydown', onKeyDown, false)
+    canvas.addEventListener('mousedown', handleDrawing);
+    document.addEventListener('keydown', onKeyDown, false);
   });
 
   const menuItems = [
-    { value: "rectangle", children: "Rectangle" },
-    { value: "ellipse", children: "Ellipse" },
-    { value: "arrow", children: "Arrow" },
-    { value: "text", children: "Text" },
-    { value: "selection", children: "Selection" },
+    { value: 'rectangle', children: 'Rectangle' },
+    { value: 'ellipse', children: 'Ellipse' },
+    { value: 'arrow', children: 'Arrow' },
+    { value: 'text', children: 'Text' },
+    { value: 'selection', children: 'Selection' },
   ];
 </script>
 
 <div class="menu">
   {#each menuItems as menuItem (menuItem.value)}
     <label>
-      <input
-        type="radio"
-        value={menuItem.value}
-        bind:group={elementType}
-      />
+      <input type="radio" value="{menuItem.value}" bind:group="{elementType}" />
       {menuItem.children}
     </label>
   {/each}
 </div>
 
 <div class="exportWrapper">
-  <button on:click={() => {
-    exportAsPNG({
-      exportBackground,
-      exportVisibleOnly,
-      exportPadding
-    })
-  }}>Export to png</button>
+  <button
+    on:click="{() => {
+      exportAsPNG({ exportBackground, exportVisibleOnly, exportPadding });
+    }}"
+  >
+    Export to png
+  </button>
   <label>
-    <input type="checkbox"
-      checked={exportBackground}
-      on:change={e => {
+    <input
+      type="checkbox"
+      checked="{exportBackground}"
+      on:change="{(e) => {
         exportBackground = e.target.checked;
-      }}
-    /> background
+      }}"
+    />
+    background
   </label>
   <label>
-    <input type="checkbox"
-      checked={exportVisibleOnly}
-      onChange={e => {
+    <input
+      type="checkbox"
+      checked="{exportVisibleOnly}"
+      onChange="{(e) => {
         exportVisibleOnly = e.target.checked;
-      }}
+      }}"
     />
     visible area only
   </label>
   (padding:
-    <input type="number" value={exportPadding}
-      onChange={e => {
-        exportPadding = e.target.value;
-      }}
-      disabled={!exportVisibleOnly}/>
+  <input
+    type="number"
+    value="{exportPadding}"
+    onChange="{(e) => {
+      exportPadding = e.target.value;
+    }}"
+    disabled="{!exportVisibleOnly}"
+  />
   px)
 </div>
 
-<canvas
-  id="canvas"
-  width={screenWidth}
-  height={screenHeight}
-/>
+<canvas id="canvas" width="{screenWidth}" height="{screenHeight}"></canvas>
 
 <style>
   .menu {
@@ -478,7 +476,7 @@
     margin-right: 10px;
   }
 
-  .exportWrapper input[type="number"] {
+  .exportWrapper input[type='number'] {
     width: 40px;
     padding: 2px;
     margin-left: 10px;

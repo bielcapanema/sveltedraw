@@ -1,22 +1,22 @@
 <script>
-	import Canvas from '../components/Canvas.svelte';
+  import Canvas from '../components/Canvas.svelte';
 </script>
-<style>
-	h1 {
-		text-align: center;
-		margin: 0 auto;
-		font-size: 2.8em;
-		text-transform: uppercase;
-		font-weight: 700;
-		margin: 0 0 0.5em 0;
-	}
-
-</style>
 
 <svelte:head>
-	<title>Sveltedraw</title>
+  <title>Sveltedraw</title>
 </svelte:head>
 
 <h1>Vrau</h1>
 
 <Canvas />
+
+<style>
+  h1 {
+    text-align: center;
+    margin: 0 auto;
+    font-size: 2.8em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin: 0 0 0.5em 0;
+  }
+</style>

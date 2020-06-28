@@ -22,7 +22,7 @@ export function newElement(type, x, y, width = 0, height = 0) {
     y: y,
     width,
     height,
-    isSelected: false
+    isSelected: false,
   };
   return element;
 }
@@ -33,17 +33,17 @@ export function rotate(x1, y1, x2, y2, angle) {
   // https://math.stackexchange.com/questions/2204520/how-do-i-rotate-a-line-segment-in-a-specific-point-on-the-line
   return [
     (x1 - x2) * Math.cos(angle) - (y1 - y2) * Math.sin(angle) + x2,
-    (x1 - x2) * Math.sin(angle) + (y1 - y2) * Math.cos(angle) + y2
+    (x1 - x2) * Math.sin(angle) + (y1 - y2) * Math.cos(angle) + y2,
   ];
 }
 
 export function isInsideAnElement(x, y) {
   return (element) => {
-    const x1 = getElementAbsoluteX1(element)
-    const x2 = getElementAbsoluteX2(element)
-    const y1 = getElementAbsoluteY1(element)
-    const y2 = getElementAbsoluteY2(element)
+    const x1 = getElementAbsoluteX1(element);
+    const x2 = getElementAbsoluteX2(element);
+    const y1 = getElementAbsoluteY1(element);
+    const y2 = getElementAbsoluteY2(element);
 
-    return (x >= x1 && x <= x2) && (y >= y1 && y <= y2)
-  }
+    return x >= x1 && x <= x2 && y >= y1 && y <= y2;
+  };
 }
