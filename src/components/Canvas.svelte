@@ -10,6 +10,8 @@
     rotate,
     isInsideAnElement,
   } from '../canvas/utils.js';
+  import Menu from './Menu.svelte';
+  import Export from './Export.svelte';
 
   let handleDrawing,
     screenWidth,
@@ -22,15 +24,42 @@
 
   let draggingElement = null;
   let elementType = 'selection';
-  let exportBackground = false;
-  let exportVisibleOnly = true;
-  let exportPadding = 10;
+  let elements = [];
+
+  function clearSelection() {
+    elements.forEach(element => {
+      element.isSelected = false;
+    });
+  }
+
+  function drawScene() {
+    context.clearRect(-0.5, -0.5, canvas.width, canvas.height);
+
+    elements.forEach(element => {
+      element.draw(rc, context);
+      if (element.isSelected) {
+        const margin = 4;
+
+        const elementX1 = getElementAbsoluteX1(element);
+        const elementX2 = getElementAbsoluteX2(element);
+        const elementY1 = getElementAbsoluteY1(element);
+        const elementY2 = getElementAbsoluteY2(element);
+        const lineDash = context.getLineDash();
+        context.setLineDash([8, 4]);
+        context.strokeRect(
+          elementX1 - margin,
+          elementY1 - margin,
+          elementX2 - elementX1 + margin * 2,
+          elementY2 - elementY1 + margin * 2
+        );
+        context.setLineDash(lineDash);
+      }
+    });
+  }
 
   onMount(() => {
     screenWidth = window.innerWidth;
     screenHeight = window.innerHeight;
-
-    let elements = [];
 
     canvas = document.getElementById('canvas');
     rc = rough.canvas(canvas);
@@ -39,18 +68,12 @@
 
     context.translate(0.5, 0.5);
 
-    function clearSelection() {
-      elements.forEach((element) => {
-        element.isSelected = false;
-      });
-    }
-
     function setSelection(selection) {
       const selectionX1 = getElementAbsoluteX1(selection);
       const selectionX2 = getElementAbsoluteX2(selection);
       const selectionY1 = getElementAbsoluteY1(selection);
       const selectionY2 = getElementAbsoluteY2(selection);
-      elements.forEach((element) => {
+      elements.forEach(element => {
         const elementX1 = getElementAbsoluteX1(element);
         const elementX2 = getElementAbsoluteX2(element);
         const elementY1 = getElementAbsoluteY1(element);
@@ -119,7 +142,7 @@
 
         element.draw = (rc, context) => {
           context.translate(element.x, element.y);
-          shapes.forEach((shape) => rc.draw(shape));
+          shapes.forEach(shape => rc.draw(shape));
           context.translate(-element.x, -element.y);
         };
         return;
@@ -139,39 +162,14 @@
       }
     }
 
-    function drawScene() {
-      context.clearRect(-0.5, -0.5, canvas.width, canvas.height);
-
-      elements.forEach((element) => {
-        element.draw(rc, context);
-        if (element.isSelected) {
-          const margin = 4;
-
-          const elementX1 = getElementAbsoluteX1(element);
-          const elementX2 = getElementAbsoluteX2(element);
-          const elementY1 = getElementAbsoluteY1(element);
-          const elementY2 = getElementAbsoluteY2(element);
-          const lineDash = context.getLineDash();
-          context.setLineDash([8, 4]);
-          context.strokeRect(
-            elementX1 - margin,
-            elementY1 - margin,
-            elementX2 - elementX1 + margin * 2,
-            elementY2 - elementY1 + margin * 2
-          );
-          context.setLineDash(lineDash);
-        }
-      });
-    }
-
-    handleDrawing = (e) => {
+    handleDrawing = e => {
       const x = e.clientX - e.target.offsetLeft;
       const y = e.clientY - e.target.offsetTop;
       const element = newElement(elementType, x, y);
       let isDraggingElements = false;
       const cursorStyle = document.documentElement.style.cursor;
       if (elementType === 'selection') {
-        const selectedElement = elements.find((element) => {
+        const selectedElement = elements.find(element => {
           const isSelected = isInsideAnElement(x, y)(element);
           if (isSelected) {
             element.isSelected = true;
@@ -185,7 +183,7 @@
           clearSelection();
         }
 
-        isDraggingElements = elements.some((element) => element.isSelected);
+        isDraggingElements = elements.some(element => element.isSelected);
 
         if (isDraggingElements) {
           document.documentElement.style.cursor = 'move';
@@ -226,13 +224,13 @@
       let lastX = x;
       let lastY = y;
 
-      const onMouseMove = (e) => {
+      const onMouseMove = e => {
         if (isDraggingElements) {
-          const selectedElements = elements.filter((el) => el.isSelected);
+          const selectedElements = elements.filter(el => el.isSelected);
           if (selectedElements.length) {
             const x = e.clientX - e.target.offsetLeft;
             const y = e.clientY - e.target.offsetTop;
-            selectedElements.forEach((element) => {
+            selectedElements.forEach(element => {
               element.x += x - lastX;
               element.y += y - lastY;
             });
@@ -261,7 +259,7 @@
         drawScene();
       };
 
-      const onMouseUp = (e) => {
+      const onMouseUp = e => {
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('mouseup', onMouseUp);
         document.documentElement.style.cursor = cursorStyle;
@@ -293,75 +291,6 @@
       drawScene();
     };
 
-    exportAsPNG = ({
-      exportBackground,
-      exportVisibleOnly,
-      exportPadding = 10,
-    }) => {
-      if (!elements.length) return window.alert('Cannot export empty canvas.');
-
-      clearSelection();
-      drawScene();
-
-      let subCanvasX1 = Infinity;
-      let subCanvasX2 = 0;
-      let subCanvasY1 = Infinity;
-      let subCanvasY2 = 0;
-
-      elements.forEach((element) => {
-        subCanvasX1 = Math.min(subCanvasX1, getElementAbsoluteX1(element));
-        subCanvasX2 = Math.max(subCanvasX2, getElementAbsoluteX2(element));
-        subCanvasY1 = Math.min(subCanvasY1, getElementAbsoluteY1(element));
-        subCanvasY2 = Math.max(subCanvasY2, getElementAbsoluteY2(element));
-      });
-
-      // create temporary canvas from which we'll export
-      const tempCanvas = document.createElement('canvas');
-      const tempCanvasCtx = tempCanvas.getContext('2d');
-      tempCanvas.style.display = 'none';
-      document.body.appendChild(tempCanvas);
-      tempCanvas.width = exportVisibleOnly
-        ? subCanvasX2 - subCanvasX1 + exportPadding * 2
-        : canvas.width;
-      tempCanvas.height = exportVisibleOnly
-        ? subCanvasY2 - subCanvasY1 + exportPadding * 2
-        : canvas.height;
-
-      if (exportBackground) {
-        tempCanvasCtx.fillStyle = '#FFF';
-        tempCanvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      // copy our original canvas onto the temp canvas
-      tempCanvasCtx.drawImage(
-        canvas, // source
-        exportVisibleOnly // sx
-          ? subCanvasX1 - exportPadding
-          : 0,
-        exportVisibleOnly // sy
-          ? subCanvasY1 - exportPadding
-          : 0,
-        exportVisibleOnly // sWidth
-          ? subCanvasX2 - subCanvasX1 + exportPadding * 2
-          : canvas.width,
-        exportVisibleOnly // sHeight
-          ? subCanvasY2 - subCanvasY1 + exportPadding * 2
-          : canvas.height,
-        0, // dx
-        0, // dy
-        exportVisibleOnly ? tempCanvas.width : canvas.width, // dWidth
-        exportVisibleOnly ? tempCanvas.height : canvas.height // dHeight
-      );
-
-      // create a temporary <a> elem which we'll use to download the image
-      const link = document.createElement('a');
-      link.setAttribute('download', 'excalibur.png');
-      link.setAttribute('href', tempCanvas.toDataURL('image/png'));
-      link.click();
-      link.remove();
-      if (tempCanvas !== canvas) tempCanvas.remove();
-    };
-
     function onKeyDown(event) {
       if (event.key === 'Backspace' && event.target.nodeName !== 'INPUT') {
         for (var i = elements.length - 1; i >= 0; --i) {
@@ -378,7 +307,7 @@
         event.key === 'ArrowDown'
       ) {
         const step = event.shiftKey ? 5 : 1;
-        elements.forEach((element) => {
+        elements.forEach(element => {
           if (element.isSelected) {
             if (event.key === 'ArrowLeft') element.x -= step;
             else if (event.key === 'ArrowRight') element.x += step;
@@ -394,91 +323,10 @@
     canvas.addEventListener('mousedown', handleDrawing);
     document.addEventListener('keydown', onKeyDown, false);
   });
-
-  const menuItems = [
-    { value: 'rectangle', children: 'Rectangle' },
-    { value: 'ellipse', children: 'Ellipse' },
-    { value: 'arrow', children: 'Arrow' },
-    { value: 'text', children: 'Text' },
-    { value: 'selection', children: 'Selection' },
-  ];
 </script>
 
-<div class="menu">
-  {#each menuItems as menuItem (menuItem.value)}
-    <label>
-      <input type="radio" value="{menuItem.value}" bind:group="{elementType}" />
-      {menuItem.children}
-    </label>
-  {/each}
-</div>
-
-<div class="exportWrapper">
-  <button
-    on:click="{() => {
-      exportAsPNG({ exportBackground, exportVisibleOnly, exportPadding });
-    }}"
-  >
-    Export to png
-  </button>
-  <label>
-    <input
-      type="checkbox"
-      checked="{exportBackground}"
-      on:change="{(e) => {
-        exportBackground = e.target.checked;
-      }}"
-    />
-    background
-  </label>
-  <label>
-    <input
-      type="checkbox"
-      checked="{exportVisibleOnly}"
-      onChange="{(e) => {
-        exportVisibleOnly = e.target.checked;
-      }}"
-    />
-    visible area only
-  </label>
-  (padding:
-  <input
-    type="number"
-    value="{exportPadding}"
-    onChange="{(e) => {
-      exportPadding = e.target.value;
-    }}"
-    disabled="{!exportVisibleOnly}"
-  />
-  px)
-</div>
+<Menu bind:elementType>
+  <Export {elements} {clearSelection} {drawScene} />
+</Menu>
 
 <canvas id="canvas" width="{screenWidth}" height="{screenHeight}"></canvas>
-
-<style>
-  .menu {
-    margin: 0 auto;
-    text-align: center;
-  }
-
-  .exportWrapper {
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-  }
-  .exportWrapper label {
-    display: flex;
-    align-items: center;
-    margin: 0 5px;
-  }
-
-  .exportWrapper button {
-    margin-right: 10px;
-  }
-
-  .exportWrapper input[type='number'] {
-    width: 40px;
-    padding: 2px;
-    margin-left: 10px;
-  }
-</style>
