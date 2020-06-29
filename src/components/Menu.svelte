@@ -4,13 +4,21 @@
 </script>
 
 <div class="menu">
-  {#each menuItems as menuItem (menuItem.value)}
-    <label>
-      <input type="radio" value="{menuItem.value}" bind:group="{elementType}" />
-      {menuItem.children}
-    </label>
-  {/each}
-  <slot />
+  <fieldset>
+    {#each menuItems as menuItem (menuItem.value)}
+      <label>
+        <input
+          type="radio"
+          value="{menuItem.value}"
+          bind:group="{elementType}"
+        />
+        {menuItem.children}
+      </label>
+    {/each}
+  </fieldset>
+  <fieldset>
+    <slot />
+  </fieldset>
 </div>
 
 <style>

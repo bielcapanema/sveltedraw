@@ -9,6 +9,9 @@
   export let elements;
   export let clearSelection;
   export let drawScene;
+  export let itemBackgroundColor;
+  export let itemStrokeColor;
+  export let viewBgColor;
 
   let exportBackground = false;
   let exportVisibleOnly = true;
@@ -18,6 +21,7 @@
     exportBackground,
     exportVisibleOnly,
     exportPadding = 10,
+    viewBgColor,
   }) => {
     if (!elements.length) return window.alert('Cannot export empty canvas.');
 
@@ -49,7 +53,7 @@
       : canvas.height;
 
     if (exportBackground) {
-      tempCanvasCtx.fillStyle = '#FFF';
+      tempCanvasCtx.fillStyle = viewBgColor;
       tempCanvasCtx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -87,7 +91,12 @@
 <div class="exportWrapper">
   <button
     on:click="{() => {
-      exportAsPNG({ exportBackground, exportVisibleOnly, exportPadding });
+      exportAsPNG({
+        exportBackground,
+        exportVisibleOnly,
+        exportPadding,
+        viewBgColor,
+      });
     }}"
   >
     Export to png
@@ -103,6 +112,18 @@
     background
   </label>
   <label>
+    <input type="color" bind:value="{viewBgColor}" />
+    {' '} view background color
+  </label>
+  <label>
+    <input type="color" bind:value="{itemStrokeColor}" />
+    {' '} item stroke color
+  </label>
+  <label>
+    <input type="color" bind:value="{itemBackgroundColor}" />
+    {' '} item background color
+  </label>
+  <label>
     <input
       type="checkbox"
       checked="{exportVisibleOnly}"
@@ -115,10 +136,7 @@
   (padding:
   <input
     type="number"
-    value="{exportPadding}"
-    onChange="{e => {
-      exportPadding = e.target.value;
-    }}"
+    bind:value="{exportPadding}"
     disabled="{!exportVisibleOnly}"
   />
   px)

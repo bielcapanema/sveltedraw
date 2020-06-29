@@ -8,21 +8,18 @@
     getElementAbsoluteY2,
     newElement,
     rotate,
-    isInsideAnElement,
     menuItems,
+    getArrowPoints,
+    hitTest,
   } from '../canvas/utils.js';
   import Menu from './Menu.svelte';
   import Export from './Export.svelte';
 
-  let handleDrawing,
-    screenWidth,
-    screenHeight,
-    context,
-    canvas,
-    generator,
-    exportAsPNG,
-    rc;
+  let handleDrawing, screenWidth, screenHeight, context, canvas, generator, rc;
 
+  let itemStrokeColor = '#000000';
+  let itemBackgroundColor = '#ffffff';
+  let viewBgColor = '#ffffff';
   let draggingElement = null;
   let elementType = 'selection';
   let elements = [];
@@ -31,6 +28,90 @@
     elements.forEach(element => {
       element.isSelected = false;
     });
+  }
+
+  function handleShortchuts(event) {
+    const index = parseInt(event.key, 10) - 1;
+
+    if (menuItems[index]) {
+      elementType = menuItems[index].value;
+    }
+  }
+
+  function deleteSelectedElements() {
+    for (var i = elements.length - 1; i >= 0; --i) {
+      if (elements[i].isSelected) {
+        elements.splice(i, 1);
+      }
+    }
+  }
+
+  function generateDraw(element, itemStrokeColor, itemBackgroundColorColor) {
+    const options = { stroke: itemStrokeColor, fill: itemBackgroundColorColor };
+    if (element.type === 'selection') {
+      element.draw = (rc, context) => {
+        const fillStyle = context.fillStyle;
+        context.fillStyle = 'rgba(0, 0, 255, 0.10)';
+        context.fillRect(element.x, element.y, element.width, element.height);
+        context.fillStyle = fillStyle;
+      };
+    } else if (element.type === 'rectangle') {
+      const shape = generator.rectangle(
+        0,
+        0,
+        element.width,
+        element.height,
+        options
+      );
+      element.draw = (rc, context) => {
+        context.translate(element.x, element.y);
+        rc.draw(shape);
+        context.translate(-element.x, -element.y);
+      };
+    } else if (element.type === 'ellipse') {
+      const shape = generator.ellipse(
+        element.width / 2,
+        element.height / 2,
+        element.width,
+        element.height,
+        options
+      );
+      element.draw = (rc, context) => {
+        context.translate(element.x, element.y);
+        rc.draw(shape);
+        context.translate(-element.x, -element.y);
+      };
+    } else if (element.type === 'arrow') {
+      const [x1, y1, x2, y2, x3, y3, x4, y4] = getArrowPoints(element);
+      const shapes = [
+        //    \
+        generator.line(x3, y3, x2, y2, options),
+        // -----
+        generator.line(x1, y1, x2, y2, options),
+        //    /
+        generator.line(x4, y4, x2, y2, options),
+      ];
+
+      element.draw = (rc, context) => {
+        context.translate(element.x, element.y);
+        shapes.forEach(shape => rc.draw(shape));
+        context.translate(-element.x, -element.y);
+      };
+      return;
+    } else if (element.type === 'text') {
+      element.draw = (rc, context) => {
+        const font = context.font;
+        context.font = element.font;
+        context.fillText(
+          element.text,
+          element.x,
+          element.y + element.actualBoundingBoxAscent
+        );
+        context.font = font;
+      };
+    } else {
+      throw new Error('Unimplemented type ' + element.type);
+    }
   }
 
   function drawScene() {
@@ -88,81 +169,6 @@
       });
     }
 
-    function generateDraw(element) {
-      if (element.type === 'selection') {
-        element.draw = (rc, context) => {
-          const fillStyle = context.fillStyle;
-          context.fillStyle = 'rgba(0, 0, 255, 0.10)';
-          context.fillRect(element.x, element.y, element.width, element.height);
-          context.fillStyle = fillStyle;
-        };
-      } else if (element.type === 'rectangle') {
-        const shape = generator.rectangle(0, 0, element.width, element.height);
-        element.draw = (rc, context) => {
-          context.translate(element.x, element.y);
-          rc.draw(shape);
-          context.translate(-element.x, -element.y);
-        };
-      } else if (element.type === 'ellipse') {
-        const shape = generator.ellipse(
-          element.width / 2,
-          element.height / 2,
-          element.width,
-          element.height
-        );
-        element.draw = (rc, context) => {
-          context.translate(element.x, element.y);
-          rc.draw(shape);
-          context.translate(-element.x, -element.y);
-        };
-      } else if (element.type === 'arrow') {
-        const x1 = 0;
-        const y1 = 0;
-        const x2 = element.width;
-        const y2 = element.height;
-
-        const size = 30; // pixels
-        const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-        // Scale down the arrow until we hit a certain size so that it doesn't look weird
-        const minSize = Math.min(size, distance / 2);
-        const xs = x2 - ((x2 - x1) / distance) * minSize;
-        const ys = y2 - ((y2 - y1) / distance) * minSize;
-
-        const angle = 20; // degrees
-        const [x3, y3] = rotate(xs, ys, x2, y2, (-angle * Math.PI) / 180);
-        const [x4, y4] = rotate(xs, ys, x2, y2, (angle * Math.PI) / 180);
-
-        const shapes = [
-          //    \
-          generator.line(x3, y3, x2, y2),
-          // -----
-          generator.line(x1, y1, x2, y2),
-          //    /
-          generator.line(x4, y4, x2, y2),
-        ];
-
-        element.draw = (rc, context) => {
-          context.translate(element.x, element.y);
-          shapes.forEach(shape => rc.draw(shape));
-          context.translate(-element.x, -element.y);
-        };
-        return;
-      } else if (element.type === 'text') {
-        element.draw = (rc, context) => {
-          const font = context.font;
-          context.font = element.font;
-          context.fillText(
-            element.text,
-            element.x,
-            element.y + element.measure.actualBoundingBoxAscent
-          );
-          context.font = font;
-        };
-      } else {
-        throw new Error('Unimplemented type ' + element.type);
-      }
-    }
-
     handleDrawing = e => {
       const x = e.clientX - e.target.offsetLeft;
       const y = e.clientY - e.target.offsetTop;
@@ -170,17 +176,25 @@
       let isDraggingElements = false;
       const cursorStyle = document.documentElement.style.cursor;
       if (elementType === 'selection') {
-        const selectedElement = elements.find(element => {
-          const isSelected = isInsideAnElement(x, y)(element);
-          if (isSelected) {
-            element.isSelected = true;
-          }
-          return isSelected;
+        const hitElement = elements.find(element => {
+          return hitTest(element, x, y);
         });
 
-        if (selectedElement) {
-          draggingElement = selectedElement;
+        // If we click on something
+        if (hitElement) {
+          if (hitElement.isSelected) {
+            // If that element is not already selected, do nothing,
+            // we're likely going to drag it
+          } else {
+            // We unselect every other elements unless shift is pressed
+            if (!e.shiftKey) {
+              clearSelection();
+            }
+            // No matter what, we select it
+            hitElement.isSelected = true;
+          }
         } else {
+          // If we don't click on anything, let's remove all the selected elements
           clearSelection();
         }
 
@@ -199,19 +213,22 @@
           element.font = '20px Virgil';
           const font = context.font;
           context.font = element.font;
-          element.measure = context.measureText(element.text);
+          const {
+            actualBoundingBoxAscent,
+            actualBoundingBoxDescent,
+            width,
+          } = context.measureText(element.text);
+          element.actualBoundingBoxAscent = actualBoundingBoxAscent;
           context.font = font;
-          const height =
-            element.measure.actualBoundingBoxAscent +
-            element.measure.actualBoundingBoxDescent;
+          const height = actualBoundingBoxAscent + actualBoundingBoxDescent;
           // Center the text
-          element.x -= element.measure.width / 2;
-          element.y -= element.measure.actualBoundingBoxAscent;
-          element.width = element.measure.width;
+          element.x -= width / 2;
+          element.y -= actualBoundingBoxAscent;
+          element.width = width;
           element.height = height;
         }
 
-        generateDraw(element);
+        generateDraw(element, itemStrokeColor, itemBackgroundColor);
         elements.push(element);
         if (elementType === 'text') {
           draggingElement = null;
@@ -242,7 +259,7 @@
           }
         }
 
-        // It is very important to read this.state within each move event,
+        // It is very important to read within each move event,
         // otherwise we would read a stale one!
         const draggingElementTemp = draggingElement;
         if (!draggingElementTemp) return;
@@ -252,7 +269,7 @@
         // Make a perfect square or circle when shift is enabled
         draggingElementTemp.height = e.shiftKey ? width : height;
 
-        generateDraw(draggingElementTemp);
+        generateDraw(draggingElementTemp, itemStrokeColor, itemBackgroundColor);
 
         if (elementType === 'selection') {
           setSelection(draggingElementTemp);
@@ -293,12 +310,16 @@
     };
 
     function onKeyDown(event) {
-      if (event.key === 'Backspace' && event.target.nodeName !== 'INPUT') {
-        for (var i = elements.length - 1; i >= 0; --i) {
-          if (elements[i].isSelected) {
-            elements.splice(i, 1);
-          }
-        }
+      if (event.target.nodeName === 'INPUT') {
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        clearSelection();
+        drawScene();
+        event.preventDefault();
+      } else if (event.key === 'Backspace') {
+        deleteSelectedElements();
         drawScene();
         event.preventDefault();
       } else if (
@@ -318,6 +339,12 @@
         });
         drawScene();
         event.preventDefault();
+      } else if (event.key === 'a' && event.metaKey) {
+        elements.forEach(element => {
+          element.isSelected = true;
+        });
+        drawScene();
+        event.preventDefault();
       } else {
         handleShortchuts(event);
       }
@@ -327,17 +354,68 @@
     document.addEventListener('keydown', onKeyDown, false);
   });
 
-  const handleShortchuts = event => {
-    const index = parseInt(event.key, 10) - 1;
+  function cutHandler(e) {
+    e.clipboardData.setData(
+      'text/plain',
+      JSON.stringify(elements.filter(element => element.isSelected))
+    );
+    deleteSelectedElements();
+    drawScene();
+    e.preventDefault();
+  }
 
-    if (menuItems[index]) {
-      elementType = menuItems[index].value;
+  function copyHandler(e) {
+    e.clipboardData.setData(
+      'text/plain',
+      JSON.stringify(elements.filter(element => element.isSelected))
+    );
+    e.preventDefault();
+  }
+
+  function pasteHandler(e) {
+    const paste = e.clipboardData.getData('text');
+    let parsedElements;
+    try {
+      parsedElements = JSON.parse(paste);
+    } catch (e) {}
+    if (
+      Array.isArray(parsedElements) &&
+      parsedElements.length > 0 &&
+      parsedElements[0].type
+    ) {
+      clearSelection();
+      parsedElements.forEach(parsedElement => {
+        parsedElement.x += 10;
+        parsedElement.y += 10;
+        generateDraw(parsedElement, itemStrokeColor, itemBackgroundColor);
+        elements.push(parsedElement);
+      });
+      drawScene();
     }
-  };
+    e.preventDefault();
+  }
 </script>
 
-<Menu bind:elementType>
-  <Export {elements} {clearSelection} {drawScene} />
-</Menu>
+<div
+  style="{{ backgroundColor: viewBgColor }}"
+  on:cut="{cutHandler}"
+  on:copy="{copyHandler}"
+  on:paste="{pasteHandler}"
+>
+  <Menu bind:elementType>
+    <Export
+      bind:itemStrokeColor
+      bind:itemBackgroundColor
+      bind:viewBgColor
+      {elements}
+      {clearSelection}
+      {drawScene}
+    />
+  </Menu>
 
-<canvas id="canvas" width="{screenWidth}" height="{screenHeight}"></canvas>
+  <canvas
+    id="canvas"
+    width="{screenWidth}"
+    height="{screenHeight - 200}"
+  ></canvas>
+</div>
