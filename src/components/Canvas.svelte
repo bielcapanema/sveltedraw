@@ -13,7 +13,7 @@
     hitTest,
   } from '../canvas/utils.js';
   import Menu from './Menu.svelte';
-  import Export from './Export.svelte';
+  import Options from './Options.svelte';
 
   let handleDrawing, screenWidth, screenHeight, context, canvas, generator, rc;
 
@@ -403,7 +403,7 @@
   on:paste="{pasteHandler}"
 >
   <Menu bind:elementType>
-    <Export
+    <Options
       bind:itemStrokeColor
       bind:itemBackgroundColor
       bind:viewBgColor

@@ -2,7 +2,7 @@
   "name": "sveltedraw",
   "description": "Pokas ideia, Svelte é bom dms",
   "author": "Gabriel Capanema - @bielcapanema",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "scripts": {
     "dev": "sapper dev",
     "build": "sapper export --legacy && mkdir public && mv -v ./__sapper__/export/* public/ ",
