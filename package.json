@@ -38,7 +38,7 @@
     "open-color": "^1.7.0",
     "polka": "next",
     "roughjs": "^4.3.1",
-    "sirv": "^1.0.0"
+    "sirv": "^1.0.12"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
